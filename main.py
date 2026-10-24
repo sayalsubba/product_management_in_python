@@ -36,11 +36,8 @@ class Main:
             response = requests.post("http://127.0.0.1:8000/products",json=products)
             if response.status_code == 200:
                 messagebox.showinfo("Sucessfull","Product sucessfully created!!")
-
             else:
                 messagebox.showerror("Error","Product is not created!!!")
-
-
         except requests.RequestException as error:
             messagebox.showerror("Error",f"Backend Problem: {str(error)}")
             
@@ -60,7 +57,6 @@ class Main:
                     label2.pack()
             else:
                 messagebox.showerror("Error","Something went wrong!!!")
-
         except requests.RequestException as error:
             messagebox.showerror("Error",str(error))
     def update_product(self):
@@ -74,21 +70,24 @@ class Main:
         self.input3.pack()
         btn7 = Button(self.update_window,text="Search",command=self.search_product)
         btn7.pack()
-    def main_search(self):       
-        self.input4 = Entry(self.update_window)
+    def main_search(self):      
+        self.search_frame = Frame(self.update_window) 
+        self.search_frame.pack()
+        self.input4 = Entry(self.search_frame)
         self.input4.pack()
-        self.input5 = Entry(self.update_window)
+        self.input5 = Entry(self.search_frame)
         self.input5.pack()
         self.input4.insert(0,self.data["name"])
-        self.input5.insert(0,self.data["color"])
-        
-        btn8 = Button(self.update_window, text="Save", command= self.save)
+        self.input5.insert(0,self.data["color"])       
+        btn8 = Button(self.search_frame, text="Save", command= self.save)
         btn8.pack()
-        
+        btn_close = Button(self.search_frame, text="Close", command=self.close)
+        btn_close.pack()
+    def close(self):
+        self.search_frame.destroy()
     def save(self):
         name = self.input4.get()
         color = self.input5.get()
-
         if name == self.data["name"] and color == self.data["color"]:
             messagebox.showerror("Error","Please Make any changes before saving")
             return
@@ -104,16 +103,25 @@ class Main:
             response = requests.patch(f"http://127.0.0.1:8000/products/{self.product_id}",json=products)
             if response.status_code ==200:
                 messagebox.showinfo("Successful","Successfully updated product!!!")
+                self.input4.delete(0,END)
+                self.input5.delete(0,END)
+                self.input3.delete(0,END)
+                self.search_frame.destroy()
+            else:
+                messagebox.showerror(
+                "Error",
+                response.text
+                )
         except requests.RequestException as error:
             messagebox.showerror("Error",f"{str(error)}")
-            
-        
-
     def search_product(self):
         input3_val = self.input3.get()
         if input3_val =="":
             messagebox.showerror("Error","Please provide the number!!")
             return
+        if hasattr(self,"search_frame") and self.search_frame.winfo_exists():
+            messagebox.showerror("Error","Please close the Message box first!!!!")
+            return       
         try:
             self.product_id = self.input3.get()
             response = requests.get(f"http://127.0.0.1:8000/products/{self.product_id}")
@@ -125,7 +133,52 @@ class Main:
             
         except requests.RequestException:
             messagebox.showerror("Error","Failed to search!!")
+    def delete_product(self):
+        self.delete_window = Toplevel(self.root)
+        self.delete_window.geometry("500x400")
+        self.delete_window.title("Delete Product")
+        self.delete_window.config(bg = "lightblue")
+        label5 = Label(self.delete_window, text="Enter the product ID you want to delete:")
+        label5.pack()
+        self.input6 = Entry(self.delete_window)
+        self.input6.pack()
+        delete_btn = Button(self.delete_window, text="Delete Product", command=self.delete)
+        delete_btn.pack()
+    def delete_frame(self):
+        show_delete = Frame(self.delete_window)
+        show_delete.pack()
+        label8 = Label(show_delete, text=f"Do you want to delete {self.product['name']}?")
+        label8.pack()
+        btn_delete = Button(show_delete, text="Delete",command=self.click_delete)
+        btn_delete.pack()
 
+
+    def click_delete(self):
+        try:
+            response = requests.delete(f"http://127.0.0.1:8000/products/{self.delete_id}")
+            if response.status_code == 200:
+                data = response.json()
+                messagebox.showinfo("Successfull",f"{data['message']}")
+            else:
+                messagebox.showerror("Error","Could not delete Product!!!")
+        except requests.RequestException as error:
+            messagebox.showerror("Error",str(error))
+    def delete(self):
+        self.delete_id = self.input6.get().strip()
+        if not self.delete_id:
+            messagebox.showerror("Error","Please provide a Product ID")
+            return
+        if not self.delete_id.isdigit():
+            messagebox.showerror("Error","Product ID must be a number")
+        try:
+            response = requests.get(f"http://127.0.0.1:8000/products/{self.delete_id}")
+            if response.status_code ==200:
+                self.product = response.json()
+                self.delete_frame()
+            else:
+                messagebox.showerror("Error","Could not find Produt!!")
+        except requests.RequestException as error:
+            messagebox.showerror("Error",str(error))
     def exit(self):
         self.root.destroy()
     def main_frame(self):
@@ -135,7 +188,7 @@ class Main:
         btn1.pack()
         btn2= Button(self.frame1, text="update", command=self.update_product)
         btn2.pack()
-        btn3= Button(self.frame1,text="Delete")
+        btn3= Button(self.frame1,text="Delete",command=self.delete_product)
         btn3.pack()
         btn4= Button(self.frame1, text="Show Products",command=self.show_products)
         btn4.pack()

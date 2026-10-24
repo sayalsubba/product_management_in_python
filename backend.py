@@ -4,8 +4,6 @@ import psycopg
 from pydantic import BaseModel
 from contextlib import closing
 from psycopg.rows import dict_row
-
-
 # DATABASE CONFIGURATION
 
 DB_HOST ="localhost"
@@ -23,19 +21,15 @@ def data_connect():
             password =DB_PASSWORD,
             port = DB_PORT
         )
-    
-
 class Product(BaseModel):
     name:str
     color:str
-
     ## HOME__PAGE
 @app.get("/")
 def home():
     return{
         "message":"Welcome to my website!!"
     }
-
 ##Get products
 @app.get("/products")
 def get_products():
@@ -67,6 +61,7 @@ def search_product(product_id:int):
                     raise HTTPException(status_code=404, detail="Product Not Found!!!")
             return product
 
+
 @app.patch("/products/{product_id}")
 def update_product(product_id:int, product:Product):
    with data_connect() as conn:
@@ -78,6 +73,20 @@ def update_product(product_id:int, product:Product):
           if product is None:
               raise HTTPException(status_code=404, detail="Product Not Found!!!")
       return product
+
+@app.delete("/products/{delete_id}")
+def delete_product(delete_id:int):
+    with data_connect() as conn:
+        with conn.cursor(row_factory=dict_row) as cursor:
+            cursor.execute("DELETE FROM products WHERE ID= %s RETURNING *",(delete_id,))
+            if cursor.rowcount ==0:
+                raise HTTPException(status_code=404, detail="Product not found!!")
+        return {
+            "message":"Product Successfully deleted!!!"
+        }
+
+
+
           
 
 
